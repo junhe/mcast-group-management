@@ -1,16 +1,11 @@
-#include "group.h"
-#include <stdio.h>
-#include <stdlib.h>
 
-static group_item bcastgroup[MAX_NUM_OF_GROUPS];
-
-void warning(char *msg) 
+ void warning(char *msg) 
 {
     fprintf(stderr, "%s\n", msg);
 }
 
 
-int init_group() 
+ int init_group() 
 {
     int i;
     printf("Initializing groups...\n");
@@ -24,12 +19,12 @@ int init_group()
         bcastgroup[i].pproclist 
             = (proc_node *)KERN_MALLOC(sizeof(proc_node));
         (bcastgroup[i].pproclist)->next = NULL;
-        (bcastgroup[i].pproclist)->pid = -1;
+        (bcastgroup[i].pproclist)->user_who_p = -1;
     }
     return 0;        
 }
 
-int display_group()
+ int display_group()
 {
     int i;
     proc_node *cur;
@@ -41,7 +36,7 @@ int display_group()
          if ( cur != NULL ) {
              printf("GROUP %d:", i);
              while (cur != NULL) {
-                 printf("->%d ", cur->pid);
+                 printf("->%d ", cur->user_who_p);
                  cur = cur->next;
              }
              printf("\n");
@@ -50,7 +45,7 @@ int display_group()
     }
 }
 
-void free_proclist(proc_node *p)
+ void free_proclist(proc_node *p)
 {
     if ( p == NULL ) {
         return;
@@ -60,7 +55,7 @@ void free_proclist(proc_node *p)
     free(p);
 }
 
-void free_buflist(msgbuf_node *p)
+ void free_buflist(msgbuf_node *p)
 {
     if ( p == NULL ) {
         return;
@@ -70,7 +65,7 @@ void free_buflist(msgbuf_node *p)
     free(p);
 }
 
-int free_group()
+ int free_group()
 {
     int i;
 
@@ -82,8 +77,10 @@ int free_group()
 }
 
 
-int addproc(int groupid, int pid)
+ int addproc(int groupid, int user_who_p)
 {
+    proc_node *pnewnode;
+    
     /* check if groupid is legal */
     if ( groupid >= MAX_NUM_OF_GROUPS 
             || groupid < 0 ) {
@@ -92,17 +89,19 @@ int addproc(int groupid, int pid)
     }
 
     /* add this proc to the proc list */
-    proc_node *pnewnode 
-        = (proc_node *)KERN_MALLOC( sizeof(proc_node) );
-    pnewnode->pid = pid;
+    pnewnode = (proc_node *)KERN_MALLOC( sizeof(proc_node) );
+    pnewnode->user_who_p = user_who_p;
     pnewnode->next = (bcastgroup[groupid].pproclist)->next;
     (bcastgroup[groupid].pproclist)->next = pnewnode;
 
     return 0;
 }
 
-int delproc(int groupid, int pid)
+ int delproc(int groupid, int user_who_p)
 {
+    proc_node *prev;
+    proc_node *cur;
+    
     /* check if groupid is legal */
     if ( groupid >= MAX_NUM_OF_GROUPS 
             || groupid < 0 ) {
@@ -110,8 +109,8 @@ int delproc(int groupid, int pid)
         return -1;
     }
 
-    proc_node *prev = bcastgroup[groupid].pproclist;
-    proc_node *cur = (bcastgroup[groupid].pproclist)->next;
+    prev = bcastgroup[groupid].pproclist;
+    cur = (bcastgroup[groupid].pproclist)->next;
     
     if ( cur == NULL ) {
         /* this proc list is empty */
@@ -121,7 +120,7 @@ int delproc(int groupid, int pid)
    
 
     while ( cur != NULL ) {
-        if ( cur->pid == pid ) {
+        if ( cur->user_who_p == user_who_p ) {
             /* found the proc, delete it */
             prev->next = cur->next;
             free(cur);
@@ -135,8 +134,11 @@ int delproc(int groupid, int pid)
     return 0;
 }
 
-int delgroup(int groupid)
+ int delgroup(int groupid)
 {
+    proc_node *prev;
+    proc_node *cur;
+    
     /* check if groupid is legal */
     if ( groupid >= MAX_NUM_OF_GROUPS 
             || groupid < 0 ) {
@@ -144,8 +146,8 @@ int delgroup(int groupid)
         return -1;
     }
 
-    proc_node *prev = bcastgroup[groupid].pproclist;
-    proc_node *cur = (bcastgroup[groupid].pproclist)->next;
+    prev = bcastgroup[groupid].pproclist;
+    cur = (bcastgroup[groupid].pproclist)->next;
     
     if ( cur == NULL ) {
         /* this proc list is empty */
@@ -160,5 +162,3 @@ int delgroup(int groupid)
     }
     
 }
-
-
